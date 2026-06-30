@@ -1,0 +1,32 @@
+services:
+  api:
+    build: .
+    restart: unless-stopped
+    environment:
+      MEDIA_TMP_DIR: ${MEDIA_TMP_DIR:-/tmp/webbrain-webtools}
+      MEDIA_TTL_SECONDS: ${MEDIA_TTL_SECONDS:-1800}
+      MAX_CONCURRENT_DOWNLOADS: ${MAX_CONCURRENT_DOWNLOADS:-2}
+      MAX_DOWNLOAD_MB: ${MAX_DOWNLOAD_MB:-512}
+      DEFAULT_MAX_HEIGHT: ${DEFAULT_MAX_HEIGHT:-720}
+      YTDLP_COOKIES_DIR: ${YTDLP_COOKIES_DIR:-/cookies}
+    volumes:
+      - webbrain-media:/tmp/webbrain-webtools
+      - ./cookies:/cookies:ro
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile.example:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  webbrain-media:
+  caddy-data:
+  caddy-config:
