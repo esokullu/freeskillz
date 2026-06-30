@@ -4,7 +4,9 @@ from dataclasses import dataclass
 
 import pytest
 
+from app.config import Settings
 from app.transcripts import (
+    build_transcript_proxy_config,
     extract_video_id,
     fetch_youtube_transcript,
     format_timestamp,
@@ -71,3 +73,41 @@ def test_fetch_transcript_returns_text_segments_and_language_priority() -> None:
     assert result["video_id"] == "dQw4w9WgXcQ"
     assert result["text"] == "hello\nworld"
     assert result["segments"][0]["timestamp"] == "0:01"
+
+
+def test_builds_webshare_proxy_config(tmp_path) -> None:
+    cfg = Settings(
+        media_tmp_dir=tmp_path / "media",
+        media_ttl_seconds=1800,
+        max_concurrent_downloads=1,
+        max_download_mb=10,
+        default_max_height=720,
+        webshare_proxy_username="user",
+        webshare_proxy_password="pass",
+        webshare_filter_ip_locations=("us", "tr"),
+        webshare_retries_when_blocked=3,
+    )
+
+    proxy_config = build_transcript_proxy_config(cfg)
+
+    assert proxy_config.http_url == "http://user-US-TR-rotate:pass@p.webshare.io:80/"
+    assert proxy_config.https_url == "http://user-US-TR-rotate:pass@p.webshare.io:80/"
+    assert proxy_config.retries_when_blocked == 3
+
+
+def test_builds_generic_transcript_proxy_config(tmp_path) -> None:
+    cfg = Settings(
+        media_tmp_dir=tmp_path / "media",
+        media_ttl_seconds=1800,
+        max_concurrent_downloads=1,
+        max_download_mb=10,
+        default_max_height=720,
+        transcript_proxy_https_url="http://user:pass@proxy.example:8080",
+    )
+
+    proxy_config = build_transcript_proxy_config(cfg)
+
+    assert proxy_config.to_requests_dict() == {
+        "http": "http://user:pass@proxy.example:8080",
+        "https": "http://user:pass@proxy.example:8080",
+    }
