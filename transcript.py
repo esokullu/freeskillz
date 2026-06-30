@@ -24,6 +24,7 @@ import sys
 
 import argparse
 
+from app.config import Settings
 from app.transcripts import (
     TranscriptServiceError,
     extract_video_id,
@@ -45,14 +46,15 @@ def main():
     args = ap.parse_args()
 
     try:
+        settings = Settings.from_env()
         if args.list:
-            result = list_youtube_transcript_languages(args.url)
+            result = list_youtube_transcript_languages(args.url, settings=settings)
             for language in result["languages"]:
                 kind = "AUTO " if language["is_generated"] else "MANUEL"
                 print(f"{kind} {language['language_code']:8} {language['language']}")
             return
 
-        result = fetch_youtube_transcript(args.url, lang=args.lang, timestamps=args.timestamps)
+        result = fetch_youtube_transcript(args.url, lang=args.lang, timestamps=args.timestamps, settings=settings)
         for snippet in result["segments"]:
             if args.timestamps:
                 print(f"[{snippet['timestamp']}] {snippet['text']}")
