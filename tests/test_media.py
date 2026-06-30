@@ -8,8 +8,11 @@ from app.media import cookie_file_for_url, download_media, resolve_media
 
 
 class FakeYoutubeDL:
+    last_opts = None
+
     def __init__(self, opts):
         self.opts = opts
+        FakeYoutubeDL.last_opts = opts
 
     def __enter__(self):
         return self
@@ -76,3 +79,36 @@ def test_download_media_returns_created_file(monkeypatch, tmp_path: Path) -> Non
     assert Path(result["file_path"]).read_bytes() == b"video"
     assert result["filename"] == "sample-abc.mp4"
     assert result["content_type"] == "video/mp4"
+
+
+def test_ytdlp_proxy_url_is_passed_to_resolve(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setitem(__import__("sys").modules, "yt_dlp", types.SimpleNamespace(YoutubeDL=FakeYoutubeDL))
+    cfg = Settings(
+        media_tmp_dir=tmp_path / "media",
+        media_ttl_seconds=1800,
+        max_concurrent_downloads=1,
+        max_download_mb=10,
+        default_max_height=720,
+        ytdlp_proxy_url="socks5://user:pass@proxy.example:1080",
+    )
+
+    resolve_media("https://example.com/video", cfg)
+
+    assert FakeYoutubeDL.last_opts["proxy"] == "socks5://user:pass@proxy.example:1080"
+
+
+def test_proxy_secrets_are_redacted(tmp_path: Path) -> None:
+    cfg = Settings(
+        media_tmp_dir=tmp_path / "media",
+        media_ttl_seconds=1800,
+        max_concurrent_downloads=1,
+        max_download_mb=10,
+        default_max_height=720,
+        webshare_proxy_password="super-secret",
+        ytdlp_proxy_url="socks5://user:pass@proxy.example:1080",
+    )
+
+    redacted = cfg.redact("failed super-secret via socks5://user:pass@proxy.example:1080")
+
+    assert "super-secret" not in redacted
+    assert "socks5://user:pass@proxy.example:1080" not in redacted
