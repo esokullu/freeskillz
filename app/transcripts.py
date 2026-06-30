@@ -4,6 +4,8 @@ import re
 import urllib.parse
 from typing import Any, Iterable
 
+from .config import Settings
+
 
 class TranscriptServiceError(Exception):
     """Raised when transcript provider calls fail."""
@@ -47,12 +49,37 @@ def preferred_language_order(available_codes: Iterable[str], requested: str | No
     return [requested] + [code for code in codes if code != requested]
 
 
-def _new_api() -> Any:
+def build_transcript_proxy_config(settings: Settings | None) -> Any | None:
+    if not settings or not settings.has_transcript_proxy:
+        return None
+
+    try:
+        from youtube_transcript_api.proxies import GenericProxyConfig, WebshareProxyConfig
+    except ImportError as exc:
+        raise TranscriptServiceError("youtube-transcript-api proxy support is not installed") from exc
+
+    if settings.webshare_proxy_username and settings.webshare_proxy_password:
+        return WebshareProxyConfig(
+            proxy_username=settings.webshare_proxy_username,
+            proxy_password=settings.webshare_proxy_password,
+            filter_ip_locations=list(settings.webshare_filter_ip_locations),
+            retries_when_blocked=settings.webshare_retries_when_blocked,
+            domain_name=settings.webshare_domain_name,
+            proxy_port=settings.webshare_proxy_port,
+        )
+
+    return GenericProxyConfig(
+        http_url=settings.transcript_proxy_http_url,
+        https_url=settings.transcript_proxy_https_url,
+    )
+
+
+def _new_api(settings: Settings | None = None) -> Any:
     try:
         from youtube_transcript_api import YouTubeTranscriptApi
     except ImportError as exc:
         raise TranscriptServiceError("youtube-transcript-api is not installed") from exc
-    return YouTubeTranscriptApi()
+    return YouTubeTranscriptApi(proxy_config=build_transcript_proxy_config(settings))
 
 
 def _field(item: Any, name: str, default: Any = None) -> Any:
@@ -61,9 +88,20 @@ def _field(item: Any, name: str, default: Any = None) -> Any:
     return getattr(item, name, default)
 
 
-def list_youtube_transcript_languages(url_or_id: str, api: Any | None = None) -> dict[str, Any]:
+def _provider_error(exc: Exception, settings: Settings | None) -> TranscriptServiceError:
+    message = str(exc)
+    if settings:
+        message = settings.redact(message)
+    return TranscriptServiceError(message)
+
+
+def list_youtube_transcript_languages(
+    url_or_id: str,
+    api: Any | None = None,
+    settings: Settings | None = None,
+) -> dict[str, Any]:
     video_id = extract_video_id(url_or_id)
-    client = api or _new_api()
+    client = api or _new_api(settings)
     try:
         available = client.list(video_id)
         languages = [
@@ -75,7 +113,7 @@ def list_youtube_transcript_languages(url_or_id: str, api: Any | None = None) ->
             for item in available
         ]
     except Exception as exc:  # Provider exceptions are version-specific.
-        raise TranscriptServiceError(str(exc)) from exc
+        raise _provider_error(exc, settings) from exc
 
     return {"video_id": video_id, "languages": languages}
 
@@ -85,16 +123,17 @@ def fetch_youtube_transcript(
     lang: str | None = None,
     timestamps: bool = False,
     api: Any | None = None,
+    settings: Settings | None = None,
 ) -> dict[str, Any]:
     video_id = extract_video_id(url_or_id)
-    client = api or _new_api()
+    client = api or _new_api(settings)
     try:
         available = client.list(video_id)
         available_codes = [item.language_code for item in available]
         languages = preferred_language_order(available_codes, lang)
         transcript = client.fetch(video_id, languages=languages)
     except Exception as exc:  # Provider exceptions are version-specific.
-        raise TranscriptServiceError(str(exc)) from exc
+        raise _provider_error(exc, settings) from exc
 
     segments = []
     for snippet in transcript:

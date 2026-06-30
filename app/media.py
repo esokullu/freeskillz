@@ -28,7 +28,7 @@ def _youtube_dl_class() -> Any:
 def _sanitize_message(message: str, settings: Settings) -> str:
     if settings.ytdlp_cookies_dir:
         message = message.replace(str(settings.ytdlp_cookies_dir), "[cookies]")
-    return message
+    return settings.redact(message)
 
 
 def _hostname(url: str) -> str:
@@ -80,6 +80,8 @@ def _base_opts(url: str, settings: Settings) -> dict[str, Any]:
     cookie_file = cookie_file_for_url(url, settings)
     if cookie_file:
         opts["cookiefile"] = str(cookie_file)
+    if settings.ytdlp_proxy_url:
+        opts["proxy"] = settings.ytdlp_proxy_url
     return opts
 
 

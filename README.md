@@ -80,6 +80,34 @@ Supported lookup names:
 
 Cookie contents are never logged by the app.
 
+## Proxy Configuration
+
+YouTube often blocks cloud provider IPs, including DigitalOcean. For transcript reliability, use Webshare Residential rotating proxies:
+
+```bash
+WEBSHARE_PROXY_USERNAME=your-webshare-proxy-username
+WEBSHARE_PROXY_PASSWORD=your-webshare-proxy-password
+WEBSHARE_FILTER_IP_LOCATIONS=us,tr
+WEBSHARE_RETRIES_WHEN_BLOCKED=10
+```
+
+`youtube-transcript-api` will use Webshare's rotating residential proxy config when both username and password are present.
+
+Generic transcript proxy fallback:
+
+```bash
+TRANSCRIPT_PROXY_HTTP_URL=http://user:pass@proxy.example:8080
+TRANSCRIPT_PROXY_HTTPS_URL=http://user:pass@proxy.example:8080
+```
+
+For media resolve/download through `yt-dlp`:
+
+```bash
+YTDLP_PROXY_URL=socks5://user:pass@proxy.example:1080
+```
+
+Proxy URLs and Webshare passwords are redacted from provider error messages.
+
 ## DigitalOcean Droplet Deploy
 
 1. Create a small Ubuntu Droplet.

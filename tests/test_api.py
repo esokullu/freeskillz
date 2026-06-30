@@ -73,7 +73,7 @@ def test_skills_markdown_is_public(tmp_path: Path) -> None:
 
 
 def test_transcript_endpoint_success(monkeypatch, tmp_path: Path) -> None:
-    def fake_fetch(url, lang=None, timestamps=False):
+    def fake_fetch(url, lang=None, timestamps=False, settings=None):
         return {
             "video_id": "dQw4w9WgXcQ",
             "selected_language": lang,
