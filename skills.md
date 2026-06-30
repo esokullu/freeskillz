@@ -124,6 +124,19 @@ The service uses `yt-dlp`, so support is best-effort across public URLs includin
 
 Private accounts, DRM, paywalls, and login-only content are not bypassed.
 
+## Proxy Behavior
+
+The deployed service may use Webshare Residential rotating proxies for YouTube transcript requests when these environment variables are configured:
+
+- `WEBSHARE_PROXY_USERNAME`
+- `WEBSHARE_PROXY_PASSWORD`
+- `WEBSHARE_FILTER_IP_LOCATIONS`
+- `WEBSHARE_RETRIES_WHEN_BLOCKED`
+
+Agents do not need to pass proxy details in API requests. If a transcript request returns a cloud-IP block message, tell the operator to configure Webshare Residential credentials on the server.
+
+Media resolve and download requests can use `YTDLP_PROXY_URL` server-side. Agents should still avoid private, paywalled, DRM, or login-only URLs.
+
 ## Failure Handling
 
 - `400`: invalid request, invalid YouTube URL, or unsupported input shape.
