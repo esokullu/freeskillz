@@ -55,7 +55,12 @@ def create_app(settings: Settings | None = None, job_manager: JobManager | None 
     )
     def youtube_transcript(payload: TranscriptRequest) -> dict:
         try:
-            return fetch_youtube_transcript(payload.url, lang=payload.lang, timestamps=payload.timestamps)
+            return fetch_youtube_transcript(
+                payload.url,
+                lang=payload.lang,
+                timestamps=payload.timestamps,
+                settings=settings,
+            )
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         except TranscriptServiceError as exc:
@@ -66,7 +71,7 @@ def create_app(settings: Settings | None = None, job_manager: JobManager | None 
     )
     def youtube_transcript_languages(payload: TranscriptLanguagesRequest) -> dict[str, list[TranscriptLanguage] | str]:
         try:
-            return list_youtube_transcript_languages(payload.url)
+            return list_youtube_transcript_languages(payload.url, settings=settings)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         except TranscriptServiceError as exc:
