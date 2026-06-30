@@ -1,0 +1,19 @@
+services:
+  api:
+    build: .
+    restart: unless-stopped
+    environment:
+      MEDIA_TMP_DIR: ${MEDIA_TMP_DIR:-/tmp/webbrain-webtools}
+      MEDIA_TTL_SECONDS: ${MEDIA_TTL_SECONDS:-1800}
+      MAX_CONCURRENT_DOWNLOADS: ${MAX_CONCURRENT_DOWNLOADS:-2}
+      MAX_DOWNLOAD_MB: ${MAX_DOWNLOAD_MB:-512}
+      DEFAULT_MAX_HEIGHT: ${DEFAULT_MAX_HEIGHT:-720}
+      YTDLP_COOKIES_DIR: ${YTDLP_COOKIES_DIR:-/cookies}
+    ports:
+      - "8000:8000"
+    volumes:
+      - webbrain-media:/tmp/webbrain-webtools
+      - ./cookies:/cookies:ro
+
+volumes:
+  webbrain-media:

@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>FreeSkillz.xyz API</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #172026;
+        --muted: #66727d;
+        --line: #d8e0e7;
+        --panel: #ffffff;
+        --wash: #f4f8fb;
+        --accent: #0f7b6c;
+        --accent-2: #c4512f;
+        --code: #10212a;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--ink);
+        background: var(--wash);
+      }
+
+      header {
+        border-bottom: 1px solid var(--line);
+        background: var(--panel);
+      }
+
+      .shell {
+        width: min(1120px, calc(100% - 32px));
+        margin: 0 auto;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 22px 0;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .mark {
+        width: 40px;
+        height: 40px;
+        flex: 0 0 auto;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(1.35rem, 2.5vw, 2rem);
+        line-height: 1.1;
+        letter-spacing: 0;
+      }
+
+      .tagline {
+        margin: 5px 0 0;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 34px;
+        padding: 0 12px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--wash);
+        color: var(--muted);
+        white-space: nowrap;
+        font-size: 0.9rem;
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--accent);
+      }
+
+      main {
+        padding: 28px 0 44px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+        gap: 18px;
+        align-items: start;
+      }
+
+      section,
+      aside {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+      }
+
+      .section-head {
+        padding: 18px 18px 0;
+      }
+
+      h2 {
+        margin: 0;
+        font-size: 1rem;
+        line-height: 1.3;
+        letter-spacing: 0;
+      }
+
+      .section-copy {
+        margin: 7px 0 0;
+        color: var(--muted);
+        line-height: 1.55;
+        font-size: 0.95rem;
+      }
+
+      .endpoints {
+        display: grid;
+        gap: 10px;
+        padding: 18px;
+      }
+
+      .endpoint {
+        display: grid;
+        grid-template-columns: 82px minmax(0, 1fr);
+        gap: 12px;
+        align-items: start;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fbfdff;
+      }
+
+      .method {
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 28px;
+        border-radius: 5px;
+        font-weight: 750;
+        font-size: 0.78rem;
+        color: #ffffff;
+        background: var(--accent);
+      }
+
+      .method.delete {
+        background: var(--accent-2);
+      }
+
+      code {
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        font-size: 0.9em;
+      }
+
+      .endpoint-path {
+        margin: 2px 0 4px;
+        overflow-wrap: anywhere;
+        color: var(--code);
+        font-weight: 650;
+      }
+
+      .endpoint-note {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.9rem;
+        line-height: 1.45;
+      }
+
+      .panel {
+        padding: 18px;
+      }
+
+      .quickstart {
+        margin-top: 14px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .field {
+        display: grid;
+        gap: 6px;
+      }
+
+      label {
+        color: var(--muted);
+        font-size: 0.82rem;
+        font-weight: 700;
+      }
+
+      input {
+        width: 100%;
+        min-height: 40px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 9px 10px;
+        font: inherit;
+      }
+
+      pre {
+        margin: 0;
+        padding: 14px;
+        overflow-x: auto;
+        border-radius: 8px;
+        background: var(--code);
+        color: #e7f2f4;
+        line-height: 1.55;
+        font-size: 0.82rem;
+      }
+
+      .sample {
+        display: grid;
+        gap: 10px;
+      }
+
+      .copy-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      button {
+        min-height: 36px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 0 12px;
+        color: var(--ink);
+        background: var(--panel);
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      button:hover {
+        border-color: var(--accent);
+      }
+
+      .muted-list {
+        margin: 12px 0 0;
+        padding-left: 18px;
+        color: var(--muted);
+        line-height: 1.55;
+        font-size: 0.92rem;
+      }
+
+      .docs-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 40px;
+        margin-top: 14px;
+        padding: 0 14px;
+        border-radius: 6px;
+        background: var(--accent);
+        color: #ffffff;
+        text-decoration: none;
+        font-weight: 750;
+      }
+
+      .docs-link:hover {
+        background: #0b665a;
+      }
+
+      @media (max-width: 820px) {
+        .topbar {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .grid {
+          grid-template-columns: 1fr;
+        }
+
+        .endpoint {
+          grid-template-columns: 1fr;
+        }
+
+        .method {
+          width: 82px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="shell topbar">
+        <div class="brand">
+          <svg class="mark" viewBox="0 0 48 48" role="img" aria-label="FreeSkillz mark">
+            <rect x="4" y="4" width="40" height="40" rx="8" fill="#0f7b6c"></rect>
+            <path d="M15 30h10c4.8 0 8-3.1 8-7.1s-3.2-6.9-8-6.9H15v20h5v-6zm5-4v-6h4.5c2.2 0 3.5 1.1 3.5 3s-1.3 3-3.5 3H20z" fill="#ffffff"></path>
+            <path d="M29 31h7v5h-7z" fill="#f2b84b"></path>
+          </svg>
+          <div>
+            <h1>FreeSkillz.xyz API</h1>
+            <p class="tagline">Transcript, media resolve, and temporary download endpoints.</p>
+          </div>
+        </div>
+        <div class="status"><span class="status-dot"></span><span>REST API v1</span></div>
+      </div>
+    </header>
+
+    <main class="shell grid">
+      <section>
+        <div class="section-head">
+          <h2>Endpoints</h2>
+          <p class="section-copy">The public API exposes health, transcript, media resolve, and temporary download routes.</p>
+        </div>
+        <div class="endpoints">
+          <article class="endpoint">
+            <span class="method">GET</span>
+            <div>
+              <p class="endpoint-path"><code>/healthz</code></p>
+              <p class="endpoint-note">Public service health check.</p>
+            </div>
+          </article>
+          <article class="endpoint">
+            <span class="method">POST</span>
+            <div>
+              <p class="endpoint-path"><code>/v1/youtube/transcript</code></p>
+              <p class="endpoint-note">Returns transcript text and timestamped segments for a YouTube URL or video id.</p>
+            </div>
+          </article>
+          <article class="endpoint">
+            <span class="method">POST</span>
+            <div>
+              <p class="endpoint-path"><code>/v1/youtube/transcript/languages</code></p>
+              <p class="endpoint-note">Lists available manual and auto caption languages.</p>
+            </div>
+          </article>
+          <article class="endpoint">
+            <span class="method">POST</span>
+            <div>
+              <p class="endpoint-path"><code>/v1/media/resolve</code></p>
+              <p class="endpoint-note">Runs metadata extraction without downloading media.</p>
+            </div>
+          </article>
+          <article class="endpoint">
+            <span class="method">POST</span>
+            <div>
+              <p class="endpoint-path"><code>/v1/media/jobs</code></p>
+              <p class="endpoint-note">Creates a temporary media download job for public URLs supported by yt-dlp.</p>
+            </div>
+          </article>
+          <article class="endpoint">
+            <span class="method">GET</span>
+            <div>
+              <p class="endpoint-path"><code>/v1/media/jobs/{job_id}</code></p>
+              <p class="endpoint-note">Checks job state, progress, metadata, and expiry.</p>
+            </div>
+          </article>
+          <article class="endpoint">
+            <span class="method">GET</span>
+            <div>
+              <p class="endpoint-path"><code>/v1/media/jobs/{job_id}/file</code></p>
+              <p class="endpoint-note">Downloads the completed temporary media file.</p>
+            </div>
+          </article>
+          <article class="endpoint">
+            <span class="method delete">DELETE</span>
+            <div>
+              <p class="endpoint-path"><code>/v1/media/jobs/{job_id}</code></p>
+              <p class="endpoint-note">Deletes a completed, failed, or expired job and removes its media files.</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <aside>
+        <div class="panel">
+          <h2>Quick Request</h2>
+          <p class="section-copy">Set your API base, then copy a ready-to-run transcript request.</p>
+          <div class="quickstart">
+            <div class="field">
+              <label for="baseUrl">Base URL</label>
+              <input id="baseUrl" value="https://FreeSkillz.xyz">
+            </div>
+            <div class="sample">
+              <div class="copy-row">
+                <h2>cURL</h2>
+                <button id="copyCurl" type="button">Copy</button>
+              </div>
+              <pre><code id="curlSample"></code></pre>
+            </div>
+          </div>
+          <ul class="muted-list">
+            <li>Downloads are temporary and expire after the configured TTL.</li>
+            <li>Private, DRM, and paywalled content is not bypassed.</li>
+            <li>Some social platforms may require server-side cookie files.</li>
+          </ul>
+          <a class="docs-link" href="/skills.md">Agent usage guide</a>
+        </div>
+      </aside>
+    </main>
+
+    <script>
+      const baseInput = document.querySelector("#baseUrl");
+      const curlSample = document.querySelector("#curlSample");
+      const copyButton = document.querySelector("#copyCurl");
+
+      function buildCurl() {
+        const baseUrl = baseInput.value.replace(/\/$/, "");
+        return [
+          `curl -X POST ${baseUrl}/v1/youtube/transcript \\`,
+          "  -H 'Content-Type: application/json' \\",
+          "  -d '{\"url\":\"https://www.youtube.com/watch?v=dQw4w9WgXcQ\",\"lang\":\"en\",\"timestamps\":true}'"
+        ].join("\n");
+      }
+
+      function renderCurl() {
+        curlSample.textContent = buildCurl();
+      }
+
+      baseInput.addEventListener("input", renderCurl);
+      copyButton.addEventListener("click", async () => {
+        await navigator.clipboard.writeText(buildCurl());
+        copyButton.textContent = "Copied";
+        window.setTimeout(() => {
+          copyButton.textContent = "Copy";
+        }, 1200);
+      });
+      renderCurl();
+    </script>
+  </body>
+</html>
