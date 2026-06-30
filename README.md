@@ -83,17 +83,20 @@ Cookie contents are never logged by the app.
 ## DigitalOcean Droplet Deploy
 
 1. Create a small Ubuntu Droplet.
-2. Install Docker and the Compose plugin.
-3. Copy this directory to the server.
-4. Optionally create `.env` from `.env.example` to override media limits or cookie paths; Docker Compose passes those values through with safe defaults.
-5. Start the service:
+2. Point `freeskillz.xyz` and `www.freeskillz.xyz` DNS A records to the Droplet IP.
+3. Use `deploy/cloud-init.yaml` as user data, or SSH in and run:
 
 ```bash
-docker compose up -d --build
+curl -fsSL https://raw.githubusercontent.com/esokullu/freeskillz/main/deploy/bootstrap.sh | sudo bash
 ```
 
-Put Caddy or Nginx in front of port `8000` for HTTPS. Keep one app process for the v1 in-memory job store; horizontal scaling needs a shared queue/object store.
-`Caddyfile.example` contains a minimal `FreeSkillz.xyz` reverse proxy.
+The production compose file runs the API plus Caddy for HTTPS:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+Keep one app process for the v1 in-memory job store; horizontal scaling needs a shared queue/object store.
 
 ## Notes
 
