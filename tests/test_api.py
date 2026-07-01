@@ -73,22 +73,63 @@ def test_skills_markdown_is_public(tmp_path: Path) -> None:
 
 
 def test_transcript_endpoint_success(monkeypatch, tmp_path: Path) -> None:
-    def fake_fetch(url, lang=None, timestamps=False, settings=None):
+    captured = {}
+
+    def fake_fetch(
+        url,
+        lang=None,
+        timestamps=False,
+        text_offset=0,
+        text_limit=None,
+        include_segments=True,
+        settings=None,
+    ):
+        captured.update(
+            url=url,
+            lang=lang,
+            timestamps=timestamps,
+            text_offset=text_offset,
+            text_limit=text_limit,
+            include_segments=include_segments,
+        )
         return {
             "video_id": "dQw4w9WgXcQ",
             "selected_language": lang,
             "text": "hello",
+            "text_length": 11,
+            "text_offset": text_offset,
+            "text_limit": text_limit,
+            "has_more_text": True,
+            "next_text_offset": 5,
             "segments": [{"text": "hello", "start": 0.0, "duration": 1.0, "timestamp": "0:00"}],
+            "total_segments": 1,
+            "segments_included": include_segments,
         }
 
     monkeypatch.setattr("app.main.fetch_youtube_transcript", fake_fetch)
     response = client(tmp_path).post(
         "/v1/youtube/transcript",
-        json={"url": "dQw4w9WgXcQ", "lang": "en", "timestamps": True},
+        json={
+            "url": "dQw4w9WgXcQ",
+            "lang": "en",
+            "timestamps": True,
+            "text_offset": 5,
+            "text_limit": 6000,
+            "include_segments": False,
+        },
     )
 
     assert response.status_code == 200
     assert response.json()["text"] == "hello"
+    assert response.json()["next_text_offset"] == 5
+    assert captured == {
+        "url": "dQw4w9WgXcQ",
+        "lang": "en",
+        "timestamps": True,
+        "text_offset": 5,
+        "text_limit": 6000,
+        "include_segments": False,
+    }
 
 
 def test_transcript_errors_are_mapped(monkeypatch, tmp_path: Path) -> None:

@@ -122,6 +122,9 @@ def fetch_youtube_transcript(
     url_or_id: str,
     lang: str | None = None,
     timestamps: bool = False,
+    text_offset: int = 0,
+    text_limit: int | None = None,
+    include_segments: bool = True,
     api: Any | None = None,
     settings: Settings | None = None,
 ) -> dict[str, Any]:
@@ -147,10 +150,30 @@ def fetch_youtube_transcript(
         }
         segments.append(segment)
 
+    full_text = "\n".join(segment["text"] for segment in segments)
+    safe_text_offset = max(0, int(text_offset or 0))
+    text_length = len(full_text)
+    text_start = min(safe_text_offset, text_length)
+    if text_limit is None:
+        text_end = text_length
+        effective_text_limit = None
+    else:
+        effective_text_limit = max(1, int(text_limit))
+        text_end = min(text_length, text_start + effective_text_limit)
+    text = full_text[text_start:text_end]
+    has_more_text = text_end < text_length
+
     selected_language = _field(transcript, "language_code") or (languages[0] if languages else None)
     return {
         "video_id": video_id,
         "selected_language": selected_language,
-        "text": "\n".join(segment["text"] for segment in segments),
-        "segments": segments,
+        "text": text,
+        "text_length": text_length,
+        "text_offset": text_start,
+        "text_limit": effective_text_limit,
+        "has_more_text": has_more_text,
+        "next_text_offset": text_end if has_more_text else None,
+        "segments": segments if include_segments else [],
+        "total_segments": len(segments),
+        "segments_included": bool(include_segments),
     }

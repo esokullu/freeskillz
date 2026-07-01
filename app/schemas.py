@@ -9,6 +9,9 @@ class TranscriptRequest(BaseModel):
     url: str = Field(..., min_length=1)
     lang: str | None = Field(default=None, min_length=2, max_length=12)
     timestamps: bool = False
+    text_offset: int = Field(default=0, ge=0)
+    text_limit: int | None = Field(default=None, ge=1)
+    include_segments: bool = True
 
 
 class TranscriptLanguagesRequest(BaseModel):
@@ -32,7 +35,14 @@ class TranscriptResponse(BaseModel):
     video_id: str
     selected_language: str | None
     text: str
+    text_length: int = 0
+    text_offset: int = 0
+    text_limit: int | None = None
+    has_more_text: bool = False
+    next_text_offset: int | None = None
     segments: list[TranscriptSegment]
+    total_segments: int = 0
+    segments_included: bool = True
 
 
 class MediaResolveRequest(BaseModel):

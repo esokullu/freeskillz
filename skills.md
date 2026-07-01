@@ -19,7 +19,7 @@ No API key is required.
 ## Agent Workflow
 
 1. Call `GET /healthz` before a task if availability matters.
-2. For YouTube text, call `POST /v1/youtube/transcript` first.
+2. For YouTube text, call `POST /v1/youtube/transcript` first. For long videos, request bounded `text_limit` windows and continue with `text_offset` set to `next_text_offset` while `has_more_text` is true.
 3. For unknown media URLs, call `POST /v1/media/resolve` before downloading.
 4. For media files, create a job with `POST /v1/media/jobs`, poll `GET /v1/media/jobs/{job_id}`, fetch `GET /v1/media/jobs/{job_id}/file`, then call `DELETE /v1/media/jobs/{job_id}`.
 5. Treat downloads as temporary. They expire automatically and can be deleted early.
@@ -55,15 +55,19 @@ Returns `video_id` and a `languages` array with `language_code`, `language`, and
 POST /v1/youtube/transcript
 Content-Type: application/json
 
-{"url":"https://www.youtube.com/watch?v=dQw4w9WgXcQ","lang":"en","timestamps":true}
+{"url":"https://www.youtube.com/watch?v=dQw4w9WgXcQ","lang":"en","timestamps":true,"text_limit":6000,"include_segments":false}
 ```
 
 Returns:
 
 - `video_id`
 - `selected_language`
-- `text`
+- `text`, containing the requested transcript window
+- `text_length`, `text_offset`, `text_limit`, `has_more_text`, and `next_text_offset`
 - `segments`, including `text`, `start`, `duration`, and optional `timestamp`
+- `total_segments` and `segments_included`
+
+If `text_limit` is omitted, the API remains backward compatible and returns the full joined transcript text. Agents that need unlimited access should prefer paged windows, then keep fetching until `has_more_text` is false or the task has enough evidence. Set `include_segments` to `false` for compact text-only windows, or `true` when timestamped segment boundaries are needed.
 
 ### Media Resolve
 

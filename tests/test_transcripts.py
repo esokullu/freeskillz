@@ -72,7 +72,48 @@ def test_fetch_transcript_returns_text_segments_and_language_priority() -> None:
     assert api.fetch_languages == ["tr", "en"]
     assert result["video_id"] == "dQw4w9WgXcQ"
     assert result["text"] == "hello\nworld"
+    assert result["text_length"] == len("hello\nworld")
+    assert result["has_more_text"] is False
+    assert result["next_text_offset"] is None
+    assert result["total_segments"] == 2
+    assert result["segments_included"] is True
     assert result["segments"][0]["timestamp"] == "0:01"
+
+
+def test_fetch_transcript_can_page_text_without_segments() -> None:
+    api = FakeApi()
+    result = fetch_youtube_transcript(
+        "dQw4w9WgXcQ",
+        text_offset=0,
+        text_limit=7,
+        include_segments=False,
+        api=api,
+    )
+
+    assert result["text"] == "hello\nw"
+    assert result["text_length"] == len("hello\nworld")
+    assert result["text_offset"] == 0
+    assert result["text_limit"] == 7
+    assert result["has_more_text"] is True
+    assert result["next_text_offset"] == 7
+    assert result["segments"] == []
+    assert result["total_segments"] == 2
+    assert result["segments_included"] is False
+
+
+def test_fetch_transcript_continues_from_text_offset() -> None:
+    api = FakeApi()
+    result = fetch_youtube_transcript(
+        "dQw4w9WgXcQ",
+        text_offset=7,
+        text_limit=20,
+        include_segments=False,
+        api=api,
+    )
+
+    assert result["text"] == "orld"
+    assert result["has_more_text"] is False
+    assert result["next_text_offset"] is None
 
 
 def test_builds_webshare_proxy_config(tmp_path) -> None:

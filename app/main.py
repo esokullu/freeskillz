@@ -59,6 +59,9 @@ def create_app(settings: Settings | None = None, job_manager: JobManager | None 
                 payload.url,
                 lang=payload.lang,
                 timestamps=payload.timestamps,
+                text_offset=payload.text_offset,
+                text_limit=payload.text_limit,
+                include_segments=payload.include_segments,
                 settings=settings,
             )
         except ValueError as exc:

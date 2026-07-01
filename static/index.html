@@ -333,7 +333,7 @@
             <span class="method">POST</span>
             <div>
               <p class="endpoint-path"><code>/v1/youtube/transcript</code></p>
-              <p class="endpoint-note">Returns transcript text and timestamped segments for a YouTube URL or video id.</p>
+              <p class="endpoint-note">Returns transcript text windows and optional timestamped segments for a YouTube URL or video id.</p>
             </div>
           </article>
           <article class="endpoint">
@@ -400,6 +400,7 @@
           </div>
           <ul class="muted-list">
             <li>Downloads are temporary and expire after the configured TTL.</li>
+            <li>Long transcripts can be continued with next_text_offset.</li>
             <li>Private, DRM, and paywalled content is not bypassed.</li>
             <li>Some social platforms may require server-side cookie files.</li>
           </ul>
@@ -418,7 +419,7 @@
         return [
           `curl -X POST ${baseUrl}/v1/youtube/transcript \\`,
           "  -H 'Content-Type: application/json' \\",
-          "  -d '{\"url\":\"https://www.youtube.com/watch?v=dQw4w9WgXcQ\",\"lang\":\"en\",\"timestamps\":true}'"
+          "  -d '{\"url\":\"https://www.youtube.com/watch?v=dQw4w9WgXcQ\",\"lang\":\"en\",\"timestamps\":true,\"text_limit\":6000,\"include_segments\":false}'"
         ].join("\n");
       }
 

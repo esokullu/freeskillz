@@ -27,8 +27,13 @@ docker compose up --build
 curl http://localhost:8000/healthz
 curl -X POST http://localhost:8000/v1/youtube/transcript \
   -H 'Content-Type: application/json' \
-  -d '{"url":"https://www.youtube.com/watch?v=dQw4w9WgXcQ","lang":"en","timestamps":true}'
+  -d '{"url":"https://www.youtube.com/watch?v=dQw4w9WgXcQ","lang":"en","timestamps":true,"text_limit":6000,"include_segments":false}'
 ```
+
+Long transcripts can be read without a fixed cap by paging through `text` windows:
+send `text_limit`, then repeat with `text_offset` set to the previous
+`next_text_offset` while `has_more_text` is true. Omit `text_limit` for the
+legacy full-response shape.
 
 ## Live API Smoke Tests
 
