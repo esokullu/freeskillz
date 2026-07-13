@@ -1,12 +1,13 @@
-# Webbrain Web Tools API
+# FreeSkillz API
 
-Small FastAPI service for YouTube transcripts and best-effort media download or metadata resolution through `yt-dlp`.
+Small FastAPI service for YouTube transcripts, WebBrain-powered New York Times article fetching, and best-effort media download or metadata resolution through `yt-dlp`.
 
 ## Endpoints
 
 - `GET /healthz`
 - `POST /v1/youtube/transcript`
 - `POST /v1/youtube/transcript/languages`
+- `POST /nytimes/fetch`
 - `POST /v1/media/resolve`
 - `POST /v1/media/jobs`
 - `GET /v1/media/jobs/{job_id}`
@@ -34,6 +35,31 @@ Long transcripts can be read without a fixed cap by paging through `text` window
 send `text_limit`, then repeat with `text_offset` set to the previous
 `next_text_offset` while `has_more_text` is true. Omit `text_limit` for the
 legacy full-response shape.
+
+## New York Times article fetch
+
+This route uses a persistent WebBrain Cloud browser through the bundled Python
+client. Configure a newly generated WebBrain API key, a ready browser session,
+and a separate bearer token for callers:
+
+```bash
+WEBBRAIN_API_KEY=wbp_your_new_key
+WEBBRAIN_BROWSER_SESSION_ID=bs_your_session
+NYTIMES_FETCH_TOKEN=choose-a-long-random-token
+```
+
+Optional settings are `WEBBRAIN_BASE_URL` and `WEBBRAIN_RUN_TIMEOUT_MS`.
+
+```bash
+curl -X POST http://localhost:8000/nytimes/fetch \
+  -H "Authorization: Bearer $NYTIMES_FETCH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://www.nytimes.com/2026/07/12/us/politics/example.html"}'
+```
+
+Only HTTPS `nytimes.com` URLs are accepted. The response includes `article`,
+`summary`, `final_url`, and the WebBrain `run_id`. If WebBrain initially returns
+a running job, FreeSkillz polls it to a terminal result before responding.
 
 ## Live API Smoke Tests
 

@@ -308,7 +308,7 @@
           </svg>
           <div>
             <h1>FreeSkillz.xyz API</h1>
-            <p class="tagline">Transcript, media resolve, and temporary download endpoints.</p>
+            <p class="tagline">Transcript, article fetch, media resolve, and temporary download endpoints.</p>
           </div>
         </div>
         <div class="status"><span class="status-dot"></span><span>REST API v1</span></div>
@@ -319,7 +319,7 @@
       <section>
         <div class="section-head">
           <h2>Endpoints</h2>
-          <p class="section-copy">The public API exposes health, transcript, media resolve, and temporary download routes.</p>
+          <p class="section-copy">The API exposes health, transcript, New York Times article fetch, media resolve, and temporary download routes.</p>
         </div>
         <div class="endpoints">
           <article class="endpoint">
@@ -341,6 +341,13 @@
             <div>
               <p class="endpoint-path"><code>/v1/youtube/transcript/languages</code></p>
               <p class="endpoint-note">Lists available manual and auto caption languages.</p>
+            </div>
+          </article>
+          <article class="endpoint">
+            <span class="method">POST</span>
+            <div>
+              <p class="endpoint-path"><code>/nytimes/fetch</code></p>
+              <p class="endpoint-note">Uses a configured WebBrain browser to return a New York Times article. Requires a bearer token.</p>
             </div>
           </article>
           <article class="endpoint">

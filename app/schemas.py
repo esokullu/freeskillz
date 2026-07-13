@@ -101,3 +101,16 @@ class MediaJobResponse(BaseModel):
     metadata: dict[str, Any] | None = None
     error: str | None = None
     file_url: str | None = None
+
+
+class NyTimesFetchRequest(BaseModel):
+    url: str = Field(..., min_length=1)
+
+
+class NyTimesFetchResponse(BaseModel):
+    url: str
+    run_id: str | None = None
+    status: Literal["completed"]
+    article: Any = None
+    summary: str = ""
+    final_url: str

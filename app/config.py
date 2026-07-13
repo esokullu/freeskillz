@@ -46,6 +46,11 @@ class Settings:
     transcript_proxy_http_url: str | None = None
     transcript_proxy_https_url: str | None = None
     ytdlp_proxy_url: str | None = None
+    webbrain_api_key: str | None = None
+    webbrain_browser_session_id: str | None = None
+    webbrain_base_url: str = "https://webbrain.cloud"
+    webbrain_run_timeout_ms: int = 240_000
+    nytimes_fetch_token: str | None = None
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -71,6 +76,11 @@ class Settings:
             transcript_proxy_http_url=_str_env("TRANSCRIPT_PROXY_HTTP_URL"),
             transcript_proxy_https_url=_str_env("TRANSCRIPT_PROXY_HTTPS_URL"),
             ytdlp_proxy_url=_str_env("YTDLP_PROXY_URL"),
+            webbrain_api_key=_str_env("WEBBRAIN_API_KEY"),
+            webbrain_browser_session_id=_str_env("WEBBRAIN_BROWSER_SESSION_ID"),
+            webbrain_base_url=_str_env("WEBBRAIN_BASE_URL") or "https://webbrain.cloud",
+            webbrain_run_timeout_ms=max(1_000, _int_env("WEBBRAIN_RUN_TIMEOUT_MS", 240_000)),
+            nytimes_fetch_token=_str_env("NYTIMES_FETCH_TOKEN"),
         )
 
     @property
@@ -92,6 +102,8 @@ class Settings:
             self.transcript_proxy_http_url,
             self.transcript_proxy_https_url,
             self.ytdlp_proxy_url,
+            self.webbrain_api_key,
+            self.nytimes_fetch_token,
         ):
             if secret:
                 redacted = redacted.replace(secret, "[redacted]")

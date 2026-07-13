@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -143,6 +144,52 @@ def test_transcript_errors_are_mapped(monkeypatch, tmp_path: Path) -> None:
     )
 
     assert response.status_code == 502
+
+
+def test_nytimes_fetch_endpoint(monkeypatch, tmp_path: Path) -> None:
+    cfg = replace(settings(tmp_path), nytimes_fetch_token="endpoint-secret")
+    captured = {}
+
+    def fake_fetch(url, request_settings):
+        captured.update(url=url, settings=request_settings)
+        return {
+            "url": url,
+            "run_id": "run_test",
+            "status": "completed",
+            "article": "Article body",
+            "summary": "Article summary",
+            "final_url": url,
+        }
+
+    monkeypatch.setattr("app.main.fetch_nytimes_article", fake_fetch)
+    response = TestClient(create_app(cfg, job_manager=FakeJobManager())).post(
+        "/nytimes/fetch",
+        headers={"Authorization": "Bearer endpoint-secret"},
+        json={"url": "https://www.nytimes.com/2026/07/12/us/example.html"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["article"] == "Article body"
+    assert captured["settings"] is cfg
+
+
+def test_nytimes_fetch_requires_endpoint_token(tmp_path: Path) -> None:
+    cfg = replace(settings(tmp_path), nytimes_fetch_token="endpoint-secret")
+    response = TestClient(create_app(cfg, job_manager=FakeJobManager())).post(
+        "/nytimes/fetch",
+        json={"url": "https://www.nytimes.com/2026/07/12/us/example.html"},
+    )
+    assert response.status_code == 401
+
+
+def test_nytimes_fetch_reports_missing_configuration(tmp_path: Path) -> None:
+    cfg = replace(settings(tmp_path), nytimes_fetch_token="endpoint-secret")
+    response = TestClient(create_app(cfg, job_manager=FakeJobManager())).post(
+        "/nytimes/fetch",
+        headers={"Authorization": "Bearer endpoint-secret"},
+        json={"url": "https://www.nytimes.com/2026/07/12/us/example.html"},
+    )
+    assert response.status_code == 503
 
 
 def test_media_job_create_and_status(tmp_path: Path) -> None:

@@ -14,15 +14,17 @@ Local development URL:
 http://127.0.0.1:8000
 ```
 
-No API key is required.
+The existing YouTube and media routes require no API key. `/nytimes/fetch`
+requires the operator-provided `NYTIMES_FETCH_TOKEN` as a bearer token.
 
 ## Agent Workflow
 
 1. Call `GET /healthz` before a task if availability matters.
 2. For YouTube text, call `POST /v1/youtube/transcript` first. For long videos, request bounded `text_limit` windows and continue with `text_offset` set to `next_text_offset` while `has_more_text` is true.
-3. For unknown media URLs, call `POST /v1/media/resolve` before downloading.
-4. For media files, create a job with `POST /v1/media/jobs`, poll `GET /v1/media/jobs/{job_id}`, fetch `GET /v1/media/jobs/{job_id}/file`, then call `DELETE /v1/media/jobs/{job_id}`.
-5. Treat downloads as temporary. They expire automatically and can be deleted early.
+3. For a New York Times article, call `POST /nytimes/fetch` with the configured bearer token.
+4. For unknown media URLs, call `POST /v1/media/resolve` before downloading.
+5. For media files, create a job with `POST /v1/media/jobs`, poll `GET /v1/media/jobs/{job_id}`, fetch `GET /v1/media/jobs/{job_id}/file`, then call `DELETE /v1/media/jobs/{job_id}`.
+6. Treat downloads as temporary. They expire automatically and can be deleted early.
 
 ## Endpoints
 
@@ -68,6 +70,21 @@ Returns:
 - `total_segments` and `segments_included`
 
 If `text_limit` is omitted, the API remains backward compatible and returns the full joined transcript text. Agents that need unlimited access should prefer paged windows, then keep fetching until `has_more_text` is false or the task has enough evidence. Set `include_segments` to `false` for compact text-only windows, or `true` when timestamped segment boundaries are needed.
+
+### New York Times Article Fetch
+
+```http
+POST /nytimes/fetch
+Authorization: Bearer <NYTIMES_FETCH_TOKEN>
+Content-Type: application/json
+
+{"url":"https://www.nytimes.com/2026/07/12/us/politics/example.html"}
+```
+
+The service asks its configured WebBrain Cloud browser to fetch the article and
+waits for the run to finish. The response contains `article`, `summary`,
+`final_url`, `run_id`, and `status`. Only HTTPS URLs on `nytimes.com` are
+accepted. A `409` means the configured browser tab already has an active run.
 
 ### Media Resolve
 
