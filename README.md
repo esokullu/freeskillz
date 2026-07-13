@@ -39,20 +39,18 @@ legacy full-response shape.
 ## New York Times article fetch
 
 This route uses a persistent WebBrain Cloud browser through the bundled Python
-client. Configure a newly generated WebBrain API key, a ready browser session,
-and a separate bearer token for callers:
+client. Configure a newly generated WebBrain API key and a ready browser
+session. The public endpoint does not require callers to authenticate:
 
 ```bash
 WEBBRAIN_API_KEY=wbp_your_new_key
 WEBBRAIN_BROWSER_SESSION_ID=bs_your_session
-NYTIMES_FETCH_TOKEN=choose-a-long-random-token
 ```
 
 Optional settings are `WEBBRAIN_BASE_URL` and `WEBBRAIN_RUN_TIMEOUT_MS`.
 
 ```bash
 curl -X POST http://localhost:8000/nytimes/fetch \
-  -H "Authorization: Bearer $NYTIMES_FETCH_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"url":"https://www.nytimes.com/2026/07/12/us/politics/example.html"}'
 ```

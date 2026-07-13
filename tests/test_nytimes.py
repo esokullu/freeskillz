@@ -23,7 +23,6 @@ def settings(tmp_path: Path) -> Settings:
         webbrain_browser_session_id="bs_test",
         webbrain_base_url="https://webbrain.example",
         webbrain_run_timeout_ms=90_000,
-        nytimes_fetch_token="endpoint-secret",
     )
 
 

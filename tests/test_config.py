@@ -14,7 +14,6 @@ def test_settings_reads_webshare_and_ytdlp_proxy_env(monkeypatch) -> None:
     monkeypatch.setenv("WEBBRAIN_API_KEY", "wbp_secret")
     monkeypatch.setenv("WEBBRAIN_BROWSER_SESSION_ID", "bs_test")
     monkeypatch.setenv("WEBBRAIN_RUN_TIMEOUT_MS", "90000")
-    monkeypatch.setenv("NYTIMES_FETCH_TOKEN", "endpoint-secret")
 
     cfg = Settings.from_env()
 
@@ -26,8 +25,7 @@ def test_settings_reads_webshare_and_ytdlp_proxy_env(monkeypatch) -> None:
     assert cfg.webbrain_api_key == "wbp_secret"
     assert cfg.webbrain_browser_session_id == "bs_test"
     assert cfg.webbrain_run_timeout_ms == 90_000
-    assert cfg.nytimes_fetch_token == "endpoint-secret"
-    assert "wbp_secret" not in cfg.redact("wbp_secret endpoint-secret")
+    assert "wbp_secret" not in cfg.redact("wbp_secret")
 
 
 def test_settings_requires_complete_webshare_credentials(monkeypatch) -> None:

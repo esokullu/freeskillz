@@ -1,7 +1,6 @@
-import secrets
 from pathlib import Path
 
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
 
 from .config import Settings
@@ -88,15 +87,7 @@ def create_app(settings: Settings | None = None, job_manager: JobManager | None 
         "/nytimes/fetch",
         response_model=NyTimesFetchResponse,
     )
-    def nytimes_fetch(
-        payload: NyTimesFetchRequest,
-        authorization: str | None = Header(default=None),
-    ) -> dict:
-        if not settings.nytimes_fetch_token:
-            raise HTTPException(status_code=503, detail="New York Times fetch endpoint is not configured")
-        expected = f"Bearer {settings.nytimes_fetch_token}"
-        if authorization is None or not secrets.compare_digest(authorization, expected):
-            raise HTTPException(status_code=401, detail="Invalid or missing bearer token")
+    def nytimes_fetch(payload: NyTimesFetchRequest) -> dict:
         try:
             return fetch_nytimes_article(payload.url, settings)
         except NyTimesFetchError as exc:

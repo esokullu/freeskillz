@@ -14,14 +14,13 @@ Local development URL:
 http://127.0.0.1:8000
 ```
 
-The existing YouTube and media routes require no API key. `/nytimes/fetch`
-requires the operator-provided `NYTIMES_FETCH_TOKEN` as a bearer token.
+The YouTube, New York Times, and media routes require no client API key.
 
 ## Agent Workflow
 
 1. Call `GET /healthz` before a task if availability matters.
 2. For YouTube text, call `POST /v1/youtube/transcript` first. For long videos, request bounded `text_limit` windows and continue with `text_offset` set to `next_text_offset` while `has_more_text` is true.
-3. For a New York Times article, call `POST /nytimes/fetch` with the configured bearer token.
+3. For a New York Times article, call `POST /nytimes/fetch`.
 4. For unknown media URLs, call `POST /v1/media/resolve` before downloading.
 5. For media files, create a job with `POST /v1/media/jobs`, poll `GET /v1/media/jobs/{job_id}`, fetch `GET /v1/media/jobs/{job_id}/file`, then call `DELETE /v1/media/jobs/{job_id}`.
 6. Treat downloads as temporary. They expire automatically and can be deleted early.
@@ -75,7 +74,6 @@ If `text_limit` is omitted, the API remains backward compatible and returns the 
 
 ```http
 POST /nytimes/fetch
-Authorization: Bearer <NYTIMES_FETCH_TOKEN>
 Content-Type: application/json
 
 {"url":"https://www.nytimes.com/2026/07/12/us/politics/example.html"}
