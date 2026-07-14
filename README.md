@@ -149,6 +149,8 @@ YTDLP_PROXY_URL=socks5://user:pass@proxy.example:1080
 
 Proxy URLs and Webshare passwords are redacted from provider error messages.
 
+Media extraction runs on the FreeSkillz server. Signing into the caller's browser does not change a media request, and browser cookies are never forwarded to FreeSkillz. If a provider requires authentication, only cookies configured by the FreeSkillz server operator can affect server-side access; clients should never advise users to sign into their local browser as a download fix.
+
 ## DigitalOcean Droplet Deploy
 
 1. Create a small Ubuntu Droplet.

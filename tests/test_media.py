@@ -5,7 +5,7 @@ from pathlib import Path
 
 import app.media as media_module
 from app.config import Settings
-from app.media import _format_selector, _normalize_video_for_delivery, cookie_file_for_url, download_media, resolve_media
+from app.media import _format_selector, _normalize_video_for_delivery, _sanitize_message, cookie_file_for_url, download_media, resolve_media
 
 
 class FakeYoutubeDL:
@@ -199,3 +199,29 @@ def test_proxy_secrets_are_redacted(tmp_path: Path) -> None:
 
     assert "super-secret" not in redacted
     assert "socks5://user:pass@proxy.example:1080" not in redacted
+
+
+def test_ytdlp_browser_cookie_advice_is_replaced_with_remote_service_context(tmp_path: Path) -> None:
+    raw = (
+        "ERROR: [Instagram] abc: Instagram sent an empty media response. "
+        "Check if this post is accessible in your browser without being logged-in. "
+        "If it is not, use --cookies-from-browser for authentication. "
+        "See https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp"
+    )
+
+    sanitized = _sanitize_message(raw, settings(tmp_path))
+
+    assert "Instagram sent an empty media response" in sanitized
+    assert "own server" in sanitized
+    assert "will not affect this request" in sanitized
+    assert "browser cookies are not sent to FreeSkillz" in sanitized
+    assert "FreeSkillz server operator" in sanitized
+    assert "Check if this post" not in sanitized
+    assert "--cookies" not in sanitized
+    assert "how-do-i-pass-cookies" not in sanitized
+
+
+def test_media_errors_without_browser_auth_advice_keep_their_provider_detail(tmp_path: Path) -> None:
+    raw = "ERROR: upstream extractor timed out while reading the public media URL"
+
+    assert _sanitize_message(raw, settings(tmp_path)) == raw

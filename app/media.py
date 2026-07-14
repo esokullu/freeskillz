@@ -4,6 +4,7 @@ import importlib
 import json
 import mimetypes
 import os
+import re
 import shutil
 import subprocess
 import urllib.parse
@@ -19,6 +20,24 @@ class MediaServiceError(Exception):
 
 ProgressCallback = Callable[[float, str | None], None]
 
+_YTDLP_BROWSER_AUTH_GUIDANCE_RE = re.compile(
+    r"(?:"
+    r"check if\b[^.\n]{0,400}\b(?:browser|logged[- ]?in)\b|"
+    r"sign in\b|log in\b|"
+    r"--cookies(?:-from-browser)?\b|"
+    r"cookies-from-browser\b|"
+    r"how-do-i-pass-cookies\b"
+    r")",
+    re.IGNORECASE,
+)
+_REMOTE_MEDIA_AUTH_CONTEXT = (
+    "FreeSkillz fetches media on its own server. Signing in to the caller's browser "
+    "or retrying from a logged-in browser will not affect this request because browser "
+    "cookies are not sent to FreeSkillz. Only authentication configured by the "
+    "FreeSkillz server operator can affect server-side access. Try the exact public "
+    "media permalink or retry later."
+)
+
 
 def _youtube_dl_class() -> Any:
     try:
@@ -31,7 +50,19 @@ def _youtube_dl_class() -> Any:
 def _sanitize_message(message: str, settings: Settings) -> str:
     if settings.ytdlp_cookies_dir:
         message = message.replace(str(settings.ytdlp_cookies_dir), "[cookies]")
-    return settings.redact(message)
+    message = settings.redact(message).strip()
+    auth_guidance = _YTDLP_BROWSER_AUTH_GUIDANCE_RE.search(message)
+    if not auth_guidance:
+        return message
+
+    # yt-dlp's stock error text assumes it is running on the user's machine
+    # and therefore recommends browser cookies. FreeSkillz runs remotely, so
+    # that advice is both inapplicable and likely to make callers expose or
+    # reason about credentials that the service never receives.
+    provider_detail = message[: auth_guidance.start()].strip().rstrip(".:;,-")
+    if len(provider_detail) < 20:
+        provider_detail = "The upstream media extractor could not access this URL"
+    return f"{provider_detail}. {_REMOTE_MEDIA_AUTH_CONTEXT}"
 
 
 def _hostname(url: str) -> str:

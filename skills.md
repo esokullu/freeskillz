@@ -169,6 +169,8 @@ Media resolve and download requests can use `YTDLP_PROXY_URL` server-side. Agent
 
 Agents should surface the provider error briefly, then suggest trying the exact public post/reel URL or lowering `max_height`. Do not turn server-side media preparation into manual ffmpeg work for the user.
 
+Media extraction runs entirely on the FreeSkillz server. The caller's browser login state and browser cookies are never used by `download_public_media`; agents must not suggest signing into the current browser or rerunning from a logged-in browser. If authenticated access is required, only server-side credentials configured by the FreeSkillz operator can affect it.
+
 ## Public-Service Etiquette
 
 - Prefer transcripts and metadata over downloads when possible.
