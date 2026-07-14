@@ -36,6 +36,18 @@ send `text_limit`, then repeat with `text_offset` set to the previous
 `next_text_offset` while `has_more_text` is true. Omit `text_limit` for the
 legacy full-response shape.
 
+## Media download delivery
+
+Media jobs require one direct public media permalink. Feed and profile URLs are
+not enough to identify which visible post the caller means. Browser agents
+should resolve the intended post/reel URL before creating a job.
+
+For `kind: "video"`, FreeSkillz owns the complete delivery pipeline: yt-dlp
+selects and merges the source streams, then FFmpeg normalizes the result to one
+QuickTime-compatible H.264/AAC-LC MP4 with fast-start metadata. Corrupt source
+packets are discarded during normalization, and the job fails rather than
+returning a video-only file when the requested video has no audio track.
+
 ## New York Times article fetch
 
 This route uses a persistent WebBrain Cloud browser through the bundled Python
@@ -159,4 +171,5 @@ Keep one app process for the v1 in-memory job store; horizontal scaling needs a 
 
 - Media jobs are ephemeral and stored under `MEDIA_TMP_DIR`.
 - Completed files expire after `MEDIA_TTL_SECONDS`.
+- Video jobs return one finalized MP4; callers do not need to merge tracks locally.
 - The service does not bypass DRM, paywalls, or private-content restrictions.

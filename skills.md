@@ -21,9 +21,10 @@ The YouTube, New York Times, and media routes require no client API key.
 1. Call `GET /healthz` before a task if availability matters.
 2. For YouTube text, call `POST /v1/youtube/transcript` first. For long videos, request bounded `text_limit` windows and continue with `text_offset` set to `next_text_offset` while `has_more_text` is true.
 3. For a New York Times article, call `POST /nytimes/fetch`.
-4. For unknown media URLs, call `POST /v1/media/resolve` before downloading.
-5. For media files, create a job with `POST /v1/media/jobs`, poll `GET /v1/media/jobs/{job_id}`, fetch `GET /v1/media/jobs/{job_id}/file`, then call `DELETE /v1/media/jobs/{job_id}`.
-6. Treat downloads as temporary. They expire automatically and can be deleted early.
+4. Send one direct media permalink, not a social feed/profile URL. If the user points at media in a feed, the browser agent should inspect the visible item first and extract its exact post/reel URL.
+5. For unknown direct media URLs, call `POST /v1/media/resolve` before downloading.
+6. For media files, create a job with `POST /v1/media/jobs`, poll `GET /v1/media/jobs/{job_id}`, fetch `GET /v1/media/jobs/{job_id}/file`, then call `DELETE /v1/media/jobs/{job_id}`.
+7. Treat downloads as temporary. They expire automatically and can be deleted early.
 
 ## Endpoints
 
@@ -106,6 +107,8 @@ Content-Type: application/json
 
 `kind` can be `auto`, `video`, `audio`, or `image`.
 
+For `kind: "video"`, FreeSkillz selects and merges the source streams server-side, repairs or drops corrupt packets during normalization, and returns one H.264/AAC-LC MP4 with `faststart`. The job fails instead of returning a silent video when no audio track is available. Agents must not return separate tracks or ask the user to run ffmpeg.
+
 The response contains:
 
 - `job_id`
@@ -164,7 +167,7 @@ Media resolve and download requests can use `YTDLP_PROXY_URL` server-side. Agent
 - `410`: file expired or disappeared.
 - `502`: upstream extractor/transcript provider failed.
 
-Agents should surface the provider error briefly, then suggest trying another public URL or lowering `max_height`.
+Agents should surface the provider error briefly, then suggest trying the exact public post/reel URL or lowering `max_height`. Do not turn server-side media preparation into manual ffmpeg work for the user.
 
 ## Public-Service Etiquette
 

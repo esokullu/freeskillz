@@ -361,7 +361,7 @@
             <span class="method">POST</span>
             <div>
               <p class="endpoint-path"><code>/v1/media/jobs</code></p>
-              <p class="endpoint-note">Creates a temporary media download job for public URLs supported by yt-dlp.</p>
+              <p class="endpoint-note">Creates a temporary media job; videos are merged and normalized to one QuickTime-compatible H.264/AAC MP4.</p>
             </div>
           </article>
           <article class="endpoint">
@@ -375,7 +375,7 @@
             <span class="method">GET</span>
             <div>
               <p class="endpoint-path"><code>/v1/media/jobs/{job_id}/file</code></p>
-              <p class="endpoint-note">Downloads the completed temporary media file.</p>
+              <p class="endpoint-note">Downloads the completed single-file media artifact.</p>
             </div>
           </article>
           <article class="endpoint">
