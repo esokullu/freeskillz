@@ -100,6 +100,7 @@ class MediaJobResponse(BaseModel):
     expires_at: str | None = None
     metadata: dict[str, Any] | None = None
     error: str | None = None
+    error_code: str | None = None
     file_url: str | None = None
 
 

@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from .config import Settings
-from .media import download_media
+from .media import MediaServiceError, download_media
 
 
 Downloader = Callable[..., dict[str, Any]]
@@ -33,6 +33,7 @@ class MediaJob:
     expires_at: datetime | None = None
     metadata: dict[str, Any] | None = None
     error: str | None = None
+    error_code: str | None = None
     file_path: str | None = None
     filename: str | None = None
     content_type: str | None = None
@@ -50,6 +51,7 @@ class MediaJob:
             "expires_at": self.expires_at.isoformat() if self.expires_at else None,
             "metadata": self.metadata,
             "error": self.error,
+            "error_code": self.error_code,
             "file_url": f"/v1/media/jobs/{self.job_id}/file" if self.status == "complete" else None,
         }
 
@@ -126,6 +128,7 @@ class JobManager:
             with self._lock:
                 job.status = "failed"
                 job.error = str(exc)
+                job.error_code = exc.code if isinstance(exc, MediaServiceError) else "media_error"
                 job.progress = 100.0
                 job.updated_at = now_utc()
             return

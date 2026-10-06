@@ -162,12 +162,21 @@ Media resolve and download requests can use `YTDLP_PROXY_URL` server-side. Agent
 ## Failure Handling
 
 - `400`: invalid request, invalid YouTube URL, or unsupported input shape.
-- `404`: missing job.
+- `403`: upstream media explicitly requires authentication (`authentication_required`).
+- `404`: missing job, or unavailable media (`media_unavailable`).
 - `409`: job is not ready or cannot be deleted while running.
 - `410`: file expired or disappeared.
 - `502`: upstream extractor/transcript provider failed.
 
 Agents should surface the provider error briefly, then suggest trying the exact public post/reel URL or lowering `max_height`. Do not turn server-side media preparation into manual ffmpeg work for the user.
+
+Media resolve errors include `detail` and `error_code`; failed download jobs
+include `error` and `error_code`. For `media_unavailable`, verify that the exact
+post still exists and is publicly available. Refreshing sessions cannot restore
+deleted posts. For `extractor_error`, parsing or network failure alone does not
+confirm an expired session; Facebook's `Cannot parse data` is in this category.
+Only `authentication_required` indicates an explicit provider authentication
+failure.
 
 Media extraction runs entirely on the FreeSkillz server. The caller's browser login state and browser cookies are never used by `download_public_media`; agents must not suggest signing into the current browser or rerunning from a logged-in browser. If authenticated access is required, only server-side credentials configured by the FreeSkillz operator can affect it.
 

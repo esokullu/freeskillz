@@ -17,6 +17,11 @@ from .config import Settings
 class MediaServiceError(Exception):
     """Raised when yt-dlp cannot resolve or download media."""
 
+    def __init__(self, message: str, *, code: str = "media_error", status_code: int = 502) -> None:
+        super().__init__(message)
+        self.code = code
+        self.status_code = status_code
+
 
 ProgressCallback = Callable[[float, str | None], None]
 
@@ -36,6 +41,24 @@ _REMOTE_MEDIA_AUTH_CONTEXT = (
     "cookies are not sent to FreeSkillz. Only authentication configured by the "
     "FreeSkillz server operator can affect server-side access. Try the exact public "
     "media permalink or retry later."
+)
+_MEDIA_MISSING_RE = re.compile(
+    r"\b(?:post|tweet|video) not found\b|"
+    r"\b(?:post|tweet|video) (?:does not exist|has been deleted|has been removed|was deleted|was removed)\b",
+    re.IGNORECASE,
+)
+_MEDIA_UNAVAILABLE_RE = re.compile(
+    r"\bthis (?:post|tweet|video|content) is (?:no longer available|unavailable)\b|"
+    r"\bthis content (?:isn't|is not) available\b",
+    re.IGNORECASE,
+)
+_MEDIA_AUTH_REQUIRED_RE = re.compile(
+    r"\bcould not authenticate you\b|\bauthentication (?:is )?required\b|"
+    r"\blogin[_ ]required\b|\bnot logged in\b|"
+    r"\b(?:sign in|log in) (?:to|before)\b|"
+    r"\b(?:must|need to) (?:be logged in|log in|sign in)\b|"
+    r"\bsession (?:has )?expired\b|\binvalid (?:auth|authentication) token\b",
+    re.IGNORECASE,
 )
 
 
@@ -68,6 +91,75 @@ def _sanitize_message(message: str, settings: Settings) -> str:
 def _hostname(url: str) -> str:
     parsed = urllib.parse.urlparse(url)
     return parsed.netloc.lower().split("@")[-1].split(":")[0]
+
+
+def _bluesky_post_not_found(exc: Exception) -> bool:
+    """Inspect the existing error response; yt-dlp hides Bluesky's JSON in its message."""
+    pending: list[BaseException] = [exc]
+    seen: set[int] = set()
+    while pending and len(seen) < 8:
+        current = pending.pop()
+        if id(current) in seen:
+            continue
+        seen.add(id(current))
+        response = getattr(current, "response", None)
+        if response is not None and getattr(response, "status", None) == 400:
+            try:
+                payload = json.loads(response.read(8192))
+            except Exception:
+                # Classification must not replace the original error if its body is unreadable.
+                payload = None
+            if (
+                isinstance(payload, dict)
+                and payload.get("error") == "NotFound"
+                and str(payload.get("message", "")).lower().startswith("post not found")
+            ):
+                return True
+        exc_info = getattr(current, "exc_info", None)
+        candidates = [current.__cause__, current.__context__, getattr(current, "cause", None)]
+        if isinstance(exc_info, tuple) and len(exc_info) > 1:
+            candidates.append(exc_info[1])
+        pending.extend(candidate for candidate in candidates if isinstance(candidate, BaseException))
+    return False
+
+
+def _extractor_error(exc: Exception, url: str, settings: Settings) -> MediaServiceError:
+    raw_message = settings.redact(str(exc))
+    message = _sanitize_message(str(exc), settings)
+    host = _hostname(url)
+    bluesky_not_found = host == "bsky.app" and _bluesky_post_not_found(exc)
+    authentication_required = _MEDIA_AUTH_REQUIRED_RE.search(raw_message)
+    if (
+        bluesky_not_found
+        or _MEDIA_MISSING_RE.search(raw_message)
+        or (_MEDIA_UNAVAILABLE_RE.search(raw_message) and not authentication_required)
+    ):
+        return MediaServiceError(
+            "The upstream post or media is unavailable. It may have been deleted, removed, "
+            "or restricted. Verify that the exact public post URL is still available. "
+            "Refreshing a session cannot restore a deleted or removed post.",
+            code="media_unavailable",
+            status_code=404,
+        )
+    if authentication_required:
+        if _REMOTE_MEDIA_AUTH_CONTEXT not in message:
+            message = f"{message.rstrip('.')}. {_REMOTE_MEDIA_AUTH_CONTEXT}"
+        return MediaServiceError(
+            f"The upstream provider requires valid server-side authentication. {message}",
+            code="authentication_required",
+            status_code=403,
+        )
+    if (host == "fb.watch" or host == "facebook.com" or host.endswith(".facebook.com")) and re.search(
+        r"\bcannot parse data\b", message, re.IGNORECASE
+    ):
+        return MediaServiceError(
+            "Facebook could not return readable media data for this URL. The post may be "
+            "unavailable or access-restricted, or Facebook's page format may have changed. "
+            "Verify that the exact post URL is still available. This response does not "
+            "confirm an expired server session.",
+            code="extractor_error",
+        )
+    return MediaServiceError(message, code="extractor_error")
 
 
 def cookie_file_for_url(url: str, settings: Settings) -> Path | None:
@@ -365,7 +457,7 @@ def resolve_media(url: str, settings: Settings) -> dict[str, Any]:
         with YoutubeDL(opts) as ydl:
             info = ydl.extract_info(url, download=False)
     except Exception as exc:
-        raise MediaServiceError(_sanitize_message(str(exc), settings)) from exc
+        raise _extractor_error(exc, url, settings) from exc
 
     return public_metadata(info)
 
@@ -421,7 +513,7 @@ def download_media(
         with YoutubeDL(opts) as ydl:
             info = ydl.extract_info(url, download=True)
     except Exception as exc:
-        raise MediaServiceError(_sanitize_message(str(exc), settings)) from exc
+        raise _extractor_error(exc, url, settings) from exc
 
     file_path = _find_downloaded_file(job_dir, info)
     metadata = public_metadata(info, include_formats=False)

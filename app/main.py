@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 
 from .config import Settings
 from .jobs import JobManager
@@ -35,6 +35,13 @@ def create_app(settings: Settings | None = None, job_manager: JobManager | None 
     static_dir = Path(__file__).resolve().parent.parent / "static"
     index_file = static_dir / "index.html"
     skills_file = Path(__file__).resolve().parent.parent / "skills.md"
+
+    @api.exception_handler(MediaServiceError)
+    async def media_error_response(_request, exc: MediaServiceError) -> JSONResponse:
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": str(exc), "error_code": exc.code},
+        )
 
     @api.get("/", response_class=HTMLResponse)
     def index() -> FileResponse:
@@ -98,10 +105,7 @@ def create_app(settings: Settings | None = None, job_manager: JobManager | None 
         response_model=MediaResolveResponse,
     )
     def media_resolve(payload: MediaResolveRequest) -> dict:
-        try:
-            return resolve_media(payload.url, settings)
-        except MediaServiceError as exc:
-            raise HTTPException(status_code=502, detail=str(exc)) from exc
+        return resolve_media(payload.url, settings)
 
     @api.post(
         "/v1/media/jobs",

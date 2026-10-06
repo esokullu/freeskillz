@@ -48,6 +48,22 @@ QuickTime-compatible H.264/AAC-LC MP4 with fast-start metadata. Corrupt source
 packets are discarded during normalization, and the job fails rather than
 returning a video-only file when the requested video has no audio track.
 
+Media resolve failures retain a human-readable `detail` and include an
+`error_code`. Failed download jobs retain `error` and include the same
+`error_code`:
+
+- `media_unavailable` (resolve HTTP 404): the provider confirms the post/media
+  is unavailable. Verify the permalink; refreshing cookies cannot restore a
+  deleted post.
+- `authentication_required` (resolve HTTP 403): the provider explicitly requires
+  authentication. Only operator-configured server credentials affect access.
+- `extractor_error` (resolve HTTP 502): parsing, network, or ambiguous provider
+  failures. Facebook's `Cannot parse data` does not confirm an expired session.
+- `media_error` (resolve HTTP 502): other media preparation failures.
+
+Bluesky's HTTP 400 response is classified as unavailable only when its existing
+JSON error response explicitly says `NotFound` / `Post not found`.
+
 ## New York Times article fetch
 
 This route uses a persistent WebBrain Cloud browser through the bundled Python
