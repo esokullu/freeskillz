@@ -24,7 +24,7 @@ services:
       WEBBRAIN_RUN_TIMEOUT_MS: ${WEBBRAIN_RUN_TIMEOUT_MS:-240000}
     volumes:
       - webbrain-media:/tmp/webbrain-webtools
-      - ./cookies:/cookies:ro
+      - ./cookies:/cookies:rw
 
   caddy:
     image: caddy:2-alpine

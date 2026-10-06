@@ -92,7 +92,14 @@ def cookie_file_for_url(url: str, settings: Settings) -> Path | None:
         cookies_dir / "cookies.txt",
         cookies_dir / f"{short_host}.txt",
     ]
-    platform = platform_names.get(short_host)
+    platform = next(
+        (
+            name
+            for domain, name in platform_names.items()
+            if short_host == domain or short_host.endswith(f".{domain}")
+        ),
+        None,
+    )
     if platform:
         candidates.append(cookies_dir / f"{platform}.txt")
 
