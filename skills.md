@@ -107,7 +107,7 @@ Content-Type: application/json
 
 `kind` can be `auto`, `video`, `audio`, or `image`.
 
-For `kind: "video"`, FreeSkillz selects and merges the source streams server-side, repairs or drops corrupt packets during normalization, and returns one H.264/AAC-LC MP4 with `faststart`. The job fails instead of returning a silent video when no audio track is available. Agents must not return separate tracks or ask the user to run ffmpeg.
+For `kind: "video"`, FreeSkillz selects and merges the source streams server-side, copies compatible streams without re-encoding, and returns one H.264/AAC-LC MP4 with `faststart`. Only incompatible streams are converted; copy errors trigger full conversion to repair the file. The job fails instead of returning a silent video when no audio track is available. Agents must not return separate tracks or ask the user to run ffmpeg.
 
 The response contains:
 

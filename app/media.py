@@ -285,11 +285,20 @@ def _first_stream(probe: dict[str, Any], codec_type: str) -> dict[str, Any] | No
 
 
 def _normalize_video_for_delivery(file_path: Path, require_audio: bool) -> tuple[Path, dict[str, Any]]:
-    """Produce one clean H.264/AAC MP4 instead of exposing yt-dlp's raw tracks."""
+    """Copy compatible streams into one MP4; transcode only when needed."""
     source_probe = _probe_media(file_path)
     if not _first_stream(source_probe, "video"):
         raise MediaServiceError("Downloaded media did not include a video track")
-    has_audio = _first_stream(source_probe, "audio") is not None
+    source_video = _first_stream(source_probe, "video") or {}
+    source_audio = _first_stream(source_probe, "audio")
+    has_audio = source_audio is not None
+    copy_video = (
+        source_video.get("codec_name") == "h264"
+        and source_video.get("pix_fmt") == "yuv420p"
+        and source_video.get("profile") in {"Baseline", "Constrained Baseline", "Main", "High"}
+    )
+    copy_audio = bool(source_audio and source_audio.get("codec_name") == "aac"
+                      and source_audio.get("profile") == "LC")
     if require_audio and not has_audio:
         raise MediaServiceError("Downloaded video did not include an audio track")
 
@@ -299,70 +308,90 @@ def _normalize_video_for_delivery(file_path: Path, require_audio: bool) -> tuple
     target = file_path.with_suffix(".mp4")
     temporary = file_path.parent / f".{target.stem}.quicktime.tmp.mp4"
     temporary.unlink(missing_ok=True)
-    command = [
-        ffmpeg,
-        "-hide_banner",
-        "-loglevel",
-        "error",
-        "-y",
-        "-fflags",
-        "+discardcorrupt",
-        "-err_detect",
-        "ignore_err",
-        "-i",
-        str(file_path),
-        "-map",
-        "0:v:0",
-    ]
-    if has_audio:
-        command.extend(["-map", "0:a:0"])
-    command.extend(
-        [
-            "-sn",
-            "-dn",
-            "-c:v",
-            "libx264",
-            "-preset",
-            "veryfast",
-            "-crf",
-            "21",
-            "-profile:v",
-            "high",
-            "-level:v",
-            "4.1",
-            "-pix_fmt",
-            "yuv420p",
-            "-tag:v",
-            "avc1",
-            "-vf",
-            "scale=trunc(iw/2)*2:trunc(ih/2)*2",
+
+    def prepare(copy_video: bool, copy_audio: bool) -> dict[str, Any]:
+        command = [
+            ffmpeg,
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-fflags",
+            "+discardcorrupt",
+            "-err_detect",
+            "ignore_err",
+            "-i",
+            str(file_path),
+            "-map",
+            "0:v:0",
         ]
-    )
-    if has_audio:
-        command.extend(
-            [
-                "-c:a",
-                "aac",
-                "-profile:a",
-                "aac_low",
-                "-b:a",
-                "160k",
-                "-af",
-                "aresample=async=1:first_pts=0",
-                "-shortest",
-            ]
-        )
-    command.extend(["-max_muxing_queue_size", "2048", "-movflags", "+faststart", str(temporary)])
+        if has_audio:
+            command.extend(["-map", "0:a:0"])
+        if copy_video:
+            command.extend(["-sn", "-dn", "-c:v", "copy", "-tag:v", "avc1"])
+        else:
+            command.extend(
+                [
+                    "-sn",
+                    "-dn",
+                    "-c:v",
+                    "libx264",
+                    "-preset",
+                    "veryfast",
+                    "-crf",
+                    "21",
+                    "-profile:v",
+                    "high",
+                    "-level:v",
+                    "4.1",
+                    "-pix_fmt",
+                    "yuv420p",
+                    "-tag:v",
+                    "avc1",
+                    "-vf",
+                    "scale=trunc(iw/2)*2:trunc(ih/2)*2",
+                ]
+            )
+        if has_audio and copy_audio:
+            command.extend(["-c:a", "copy"])
+        elif has_audio:
+            command.extend(
+                [
+                    "-c:a",
+                    "aac",
+                    "-profile:a",
+                    "aac_low",
+                    "-b:a",
+                    "160k",
+                    "-af",
+                    "aresample=async=1:first_pts=0",
+                    "-shortest",
+                ]
+            )
+        command.extend(["-max_muxing_queue_size", "2048", "-movflags", "+faststart", str(temporary)])
+        result = _run_media_command(command, timeout=900)
+        # A successful exit can still report damaged packets. Repair those rather
+        # than shipping a corrupt stream-copy result.
+        if (copy_video or (has_audio and copy_audio)) and result.stderr.strip():
+            raise MediaServiceError("Stream copy reported media errors")
+        probe = _probe_media(temporary)
+        video = _first_stream(probe, "video")
+        audio = _first_stream(probe, "audio")
+        if not video or video.get("codec_name") != "h264" or video.get("pix_fmt") != "yuv420p":
+            raise MediaServiceError("Prepared video is not compatible H.264")
+        if has_audio and (not audio or audio.get("codec_name") != "aac" or audio.get("profile") != "LC"):
+            raise MediaServiceError("Prepared video is missing its AAC-LC audio track")
+        return probe
 
     try:
-        _run_media_command(command, timeout=900)
-        output_probe = _probe_media(temporary)
-        video = _first_stream(output_probe, "video")
+        try:
+            output_probe = prepare(copy_video, copy_audio)
+        except MediaServiceError:
+            if not copy_video and not (has_audio and copy_audio):
+                raise
+            temporary.unlink(missing_ok=True)
+            output_probe = prepare(False, False)
         audio = _first_stream(output_probe, "audio")
-        if not video or video.get("codec_name") != "h264":
-            raise MediaServiceError("Prepared video is not H.264")
-        if require_audio and (not audio or audio.get("codec_name") != "aac"):
-            raise MediaServiceError("Prepared video is missing its AAC audio track")
 
         if target == file_path:
             file_path.unlink(missing_ok=True)

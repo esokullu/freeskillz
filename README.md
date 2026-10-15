@@ -43,9 +43,11 @@ not enough to identify which visible post the caller means. Browser agents
 should resolve the intended post/reel URL before creating a job.
 
 For `kind: "video"`, FreeSkillz owns the complete delivery pipeline: yt-dlp
-selects and merges the source streams, then FFmpeg normalizes the result to one
-QuickTime-compatible H.264/AAC-LC MP4 with fast-start metadata. Corrupt source
-packets are discarded during normalization, and the job fails rather than
+selects and merges the source streams into one QuickTime-compatible H.264/AAC-LC
+MP4 with fast-start metadata. Compatible H.264/yuv420p and AAC-LC streams are
+copied without quality loss; only incompatible streams are re-encoded. If
+stream copying reports errors or fails validation, FFmpeg retries with full
+conversion to repair the file. The job fails rather than
 returning a video-only file when the requested video has no audio track.
 
 Media resolve failures retain a human-readable `detail` and include an
